@@ -7,15 +7,18 @@ executable localcooking-app
   build-depends:       base ^>=4.12.0.0
    , Shpadoinkle
    , Shpadoinkle-backend-snabbdom
+   , Shpadoinkle-console
    , Shpadoinkle-html
-   , text
+   , ghcjs-base
+   , jsaddle
+   , lens
 
   hs-source-dirs:      src
   default-language:    Haskell2010
 
   ghc-options:
-    -Wall
-    -Werror
+    -- -Wall
+    -- -Werror
     -Wcompat
     -fwarn-redundant-constraints
     -fwarn-incomplete-uni-patterns
@@ -24,8 +27,8 @@ executable localcooking-app
     -fwarn-identities
 
   ghcjs-options:
-    -Wall
-    -Werror
+    -- -Wall
+    -- -Werror
     -Wcompat
     -fno-warn-missing-home-modules
     -fwarn-redundant-constraints
