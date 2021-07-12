@@ -8,77 +8,55 @@
 
 module Main where
 
+import Auth0 (createAuth0Client, login, logout, handleRedirectCallback, getUser, Auth0, CreateAuth0Client (..))
 
 import           Shpadoinkle                                (Html, JSM)
 import           Shpadoinkle.Backend.Snabbdom               (runSnabbdom, stage)
 import           Shpadoinkle.Html
-import           Shpadoinkle.Run                            (live, runJSorWarp, simple)
+import           Shpadoinkle.Run                            (runJSorWarp, simple)
 import           Shpadoinkle.Console                        (warn)
 import           Control.Lens                               ((^.))
+import           Control.Monad                              (void)
+import           Control.Monad.IO.Class                     (MonadIO (liftIO))
 import qualified GHCJS.Types                                as T
+import           GHCJS.Foreign.Callback                     (asyncCallback1)
 import           GHCJS.Marshal                              (ToJSVal (toJSVal))
 import qualified Language.Javascript.JSaddle.Object         as JS
 
 default (T.JSString)
 
-foreign import javascript unsafe "createAuth0Client" createAuth0Client' :: T.JSVal -> IO T.JSVal
-
-data CreateAuth0Client = CreateAuth0Client
-  { domain :: T.JSString
-  , clientId :: T.JSString
-  , redirectUrl :: T.JSString
-  }
-instance ToJSVal CreateAuth0Client where
-  toJSVal CreateAuth0Client{..} = do
-    o <- JS.create
-    domain' <- toJSVal domain
-    clientId' <- toJSVal clientId
-    redirectUrl' <- toJSVal redirectUrl
-    JS.unsafeSetProp "domain" domain' o
-    JS.unsafeSetProp "client_id" clientId' o
-    JS.unsafeSetProp "redirect_url" redirectUrl' o
-    toJSVal o
 
 
 
-createAuth0Client :: CreateAuth0Client -> IO ()
-createAuth0Client args = do
-  o' <- createAuth0Client' =<< toJSVal args
-
-  let handler :: JS.JSCallAsFunction
-      handler _ _ [auth0] =
-        putStrLn "yoooo"
-      handler _ _ _ = error "expecting one arg"
-  handler' <- toJSVal handler
-
-  let catcher :: JS.JSCallAsFunction
-      catcher _ _ errs =
-        warn @ToJSVal errs
-  catcher' <- toJSVal catcher
-
-  o'' <- o' ^. JS.js1 "then" handler'
-  o''' <- o'' ^. JS.js1 "catch" catcher'
-  pure ()
-
-
-view :: () -> Html m ()
-view _ =
+view :: MonadIO m => Auth0 -> () -> Html m ()
+view auth0 _ =
   div_
     [ "hello world"
-    -- , button []
+    , button [onClickM_ (liftIO $ login auth0)] ["Login"]
+    , button [onClickM_ (liftIO $ logout auth0 Nothing)] ["Logout"]
+    , button [onClickM_ (liftIO $ checkLogin)] ["Check Login"]
     ]
+  where
+    checkLogin = do
+      void $ handleRedirectCallback auth0
+      -- warn @ToJSVal auth0
+      user <- getUser auth0
+
+      warn @ToJSVal user
 
 
-app :: JSM ()
-app = simple runSnabbdom () view stage
-
-
-dev :: IO ()
-dev = live 8080 app
+app :: Auth0 -> JSM ()
+app auth0 = simple runSnabbdom () (view auth0) stage
 
 
 main :: IO ()
 main = do
-  putStrLn "\nhi, my name is localcooking-app"
-  putStrLn "happy point of view on https://localhost:8080\n"
-  runJSorWarp 8080 app
+  putStrLn "Calling createAuth0Client"
+
+  auth0 <- createAuth0Client $ CreateAuth0Client
+    { domain = "localcooking-dev.us.auth0.com"
+    , clientId = "Q0ITViiiUSflk71dTs8Zr9I3mfhwu35h"
+    , redirectUri = "https://localcooking.com"
+    }
+
+  runJSorWarp 8080 (app auth0)
