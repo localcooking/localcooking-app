@@ -2,16 +2,19 @@
     RecordWildCards
   , OverloadedStrings
   , ExtendedDefaultRules
+  , TypeApplications
   #-}
 
 module Auth0 where
 
-import Auth0.Await (awaitThrow)
+import Auth0.Await (await, awaitThrow)
 
+import Shpadoinkle.Console (warn)
 import GHCJS.Types (JSString, JSVal)
 import GHCJS.Marshal (ToJSVal (toJSVal), fromJSValUnchecked)
 import Control.Lens ((^.))
 import Control.Monad (void)
+import Control.Exception.Base (catch)
 import JavaScript.Object (create, unsafeSetProp)
 import Language.Javascript.JSaddle.Object (js0, js1)
 
@@ -50,19 +53,36 @@ login (Auth0 auth0) =
 newtype RedirectResult = RedirectResult {getRedirectResult :: JSVal}
 
 
-handleRedirectCallback :: Auth0 -> IO RedirectResult
-handleRedirectCallback (Auth0 auth0) =
-  fmap RedirectResult $ awaitThrow =<< auth0 ^. js0 "handleRedirectCallback"
+handleRedirectCallback :: Auth0 -> IO (Maybe RedirectResult)
+handleRedirectCallback (Auth0 auth0) = do
+  eRes <- await =<< auth0 ^. js0 "handleRedirectCallback"
+  case eRes of
+    Left e -> do
+      warn @ToJSVal e
+      pure Nothing
+    Right x -> pure . Just $ RedirectResult x
 
 
-getUser :: Auth0 -> IO JSVal
-getUser (Auth0 auth0) =
-  awaitThrow =<< auth0 ^. js0 "getUser"
+-- FIXME marshal into a haskell value
+-- NOTE can be undefined, or an object of various vendor supported fields
+getUser :: Auth0 -> IO (Maybe JSVal)
+getUser (Auth0 auth0) = do
+  eRes <- await =<< auth0 ^. js0 "getUser"
+  case eRes of
+    Left e -> do
+      warn @ToJSVal e
+      pure Nothing
+    Right x -> pure $ Just x
 
 
-getTokenSilently :: Auth0 -> IO JSString
-getTokenSilently (Auth0 auth0) =
-  fromJSValUnchecked =<< awaitThrow =<< auth0 ^. js0 "getTokenSilently"
+getTokenSilently :: Auth0 -> IO (Maybe JSString)
+getTokenSilently (Auth0 auth0) = do
+  eRes <- await =<< auth0 ^. js0 "getTokenSilently"
+  case eRes of
+    Left e -> do
+      warn @ToJSVal e
+      pure Nothing
+    Right x -> Just <$> fromJSValUnchecked x
 
 
 logout :: Auth0

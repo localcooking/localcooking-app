@@ -33,7 +33,7 @@ await promise = do
   catcher' <- asyncCallback1 catcher
 
   void $ promise ^. js1 "then" (jsval handler')
-  void $ promise ^. js1 "catch" (jsval catcher')
+                 ^. js1 "catch" (jsval catcher')
 
   atomically $ takeTMVar valMVar
 

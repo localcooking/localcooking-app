@@ -40,9 +40,10 @@ view auth0 _ =
     checkLogin = do
       void $ handleRedirectCallback auth0
       -- warn @ToJSVal auth0
-      user <- getUser auth0
+      mUser <- getUser auth0
 
-      warn @ToJSVal user
+      putStrLn "User Info"
+      warn @ToJSVal mUser
 
 
 app :: Auth0 -> JSM ()
