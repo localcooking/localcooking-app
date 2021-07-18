@@ -11,6 +11,7 @@ executable localcooking-app
    , Shpadoinkle-backend-snabbdom
    , Shpadoinkle-console
    , Shpadoinkle-html
+   , deepseq
    , ghcjs-base
    , jsaddle
    , lens
