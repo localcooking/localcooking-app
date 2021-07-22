@@ -67,6 +67,7 @@ createAuth0Client args =
   fmap Auth0 . awaitThrow =<< createAuth0Client' =<< toJSVal args
 
 
+-- FIXME apply parameter - https://auth0.com/docs/libraries/auth0-single-page-app-sdk
 login :: Auth0 -> IO ()
 login (Auth0 auth0) =
   void $ awaitThrow =<< auth0 ^. js0 "loginWithRedirect"
